@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Input from "./ui/Input";
 import Link from "next/link";
+import { useRegisterMutation } from "@/redux/services/authApi";
 
 interface LoginFormData {
   email: string;
@@ -10,18 +11,16 @@ interface LoginFormData {
   name: string;
 }
 
-const initialState = {
+const initialState: LoginFormData = {
   email: "",
   password: "",
   name: "",
 };
+
 const RegisterForm = () => {
   const [formData, setFormData] = useState<LoginFormData>(initialState);
-
-  const [errors, setErrors] = useState<Partial<LoginFormData>>({
-    email: "",
-    password: "",
-  });
+  const [errors, setErrors] = useState<Partial<LoginFormData>>({});
+  const [register, { isLoading }] = useRegisterMutation();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -60,7 +59,7 @@ const RegisterForm = () => {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (validateForm()) {
-      console.log("Form submitted:", formData);
+      void register(formData);
     }
   };
 
@@ -104,9 +103,10 @@ const RegisterForm = () => {
 
           <button
             type="submit"
-            className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-xl transition-colors duration-200 cursor-pointer"
+            disabled={isLoading}
+            className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-xl transition-colors duration-200 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            Sign Up
+            {isLoading ? "Creating account..." : "Sign Up"}
           </button>
           <p className="text-center text-sm">
             Already have an account?{" "}

@@ -3,17 +3,21 @@
 import React, { useState } from "react";
 import Input from "./ui/Input";
 import Link from "next/link";
+import { useLoginMutation } from "@/redux/services/authApi";
 
 interface LoginFormData {
   email: string;
   password: string;
 }
 
+const initialFormData: LoginFormData = {
+  email: "",
+  password: "",
+};
 const LoginForm = () => {
-  const [formData, setFormData] = useState<LoginFormData>({
-    email: "",
-    password: "",
-  });
+  const [formData, setFormData] = useState<LoginFormData>(initialFormData);
+
+  const [login, { isLoading }] = useLoginMutation();
 
   const [errors, setErrors] = useState<Partial<LoginFormData>>({
     email: "",
@@ -27,7 +31,6 @@ const LoginForm = () => {
       [name]: value,
     }));
 
-    // Clear error when user starts typing
     if (errors[name as keyof LoginFormData]) {
       setErrors((prev) => ({
         ...prev,
@@ -55,12 +58,14 @@ const LoginForm = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (validateForm()) {
-      // Handle login logic here
-      console.log("Form submitted:", formData);
+      const res = await login(formData);
+      // console.log(res.data.message);
+      window.location.reload();
     }
+    setFormData(initialFormData);
   };
 
   return (
@@ -94,12 +99,13 @@ const LoginForm = () => {
 
           <button
             type="submit"
+            disabled={isLoading}
             className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-xl transition-colors duration-200 cursor-pointer"
           >
-            Sign In
+            {isLoading ? "Loading..." : "Sign In"}
           </button>
           <p className="text-center text-sm">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link
               href="/register"
               className="text-blue-600/80 hover:underline font-semibold"
