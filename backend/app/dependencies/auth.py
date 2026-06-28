@@ -1,9 +1,10 @@
 from fastapi import Request, HTTPException
 
 from jose import jwt
-
+from datetime import datetime
 from app.config.settings import settings
 from app.database.mongodb import user_collection
+from app.database.mongodb import refresh_tokens_collection
 
 
 async def get_current_user(request: Request):
@@ -12,7 +13,11 @@ async def get_current_user(request: Request):
     if not token:
         raise HTTPException(401, "Unauthorized")
 
-    payload = jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
+    payload = jwt.decode(
+        token,
+        settings.SECRET_KEY or settings.JWT_SECRET,
+        algorithms=[settings.ALGORITHM or "HS256"],
+    )
 
     email = payload["email"]
 
@@ -22,3 +27,18 @@ async def get_current_user(request: Request):
         raise HTTPException(404, "User not found")
 
     return user
+
+
+async def save_refresh_token_record(
+    user_id: str,
+    jti: str,
+    revoked,
+):
+    await refresh_tokens_collection.insert_one(
+        {
+            "user_id": user_id,
+            "jti": jti,
+            "revoked": revoked,
+            "created_at": datetime.utcnow(),
+        }
+    )
