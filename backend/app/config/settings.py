@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     ALGORITHM: str
 
+    FRONTEND_URL: str = "http://localhost:3000"
+    COOKIE_SECURE: bool = False
+    COOKIE_SAMESITE: str = "lax"
+
     class Config:
         env_file = ".env"
 

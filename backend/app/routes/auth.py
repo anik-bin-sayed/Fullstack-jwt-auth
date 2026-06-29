@@ -4,15 +4,14 @@ from jose import JWTError
 
 from fastapi import APIRouter, Response, Depends, HTTPException, Request
 
+from app.config.settings import settings
 from app.schemas.user import *
-from app.database.mongodb import user_collection
 from app.dependencies.auth import get_current_user, save_refresh_token_record
 from app.utils.password import hashed_password, verify_password
 from app.services.auth_service import (
     get_user_by_email,
     create_user,
     get_refresh_token_record,
-    revoke_all_tokens_for_user,
     revoke_refresh_token_record,
 )
 from app.utils.jwt import create_access_token, create_refresh_token, decode_token
@@ -59,7 +58,9 @@ async def login(data: LoginSchema, response: Response):
         key="access_token",
         value=access_token,
         httponly=True,
-        samesite="lax",
+        secure=settings.COOKIE_SECURE,
+        samesite=settings.COOKIE_SAMESITE,
+        path="/",
         max_age=15 * 60,
     )
 
@@ -67,7 +68,9 @@ async def login(data: LoginSchema, response: Response):
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        samesite="lax",
+        secure=settings.COOKIE_SECURE,
+        samesite=settings.COOKIE_SAMESITE,
+        path="/",
         max_age=7 * 24 * 60 * 60,
     )
 
@@ -93,7 +96,6 @@ async def refresh(request: Request, response: Response):
         db_record = await get_refresh_token_record(jti=jti)
 
         if db_record is None or db_record["revoked"]:
-            await revoke_all_tokens_for_user(user_id)
             raise HTTPException(401, "Session invalid, please log in again")
 
         user_id = db_record["user_id"]
@@ -110,7 +112,9 @@ async def refresh(request: Request, response: Response):
             key="access_token",
             value=new_access_token,
             httponly=True,
-            samesite="lax",
+            secure=settings.COOKIE_SECURE,
+            samesite=settings.COOKIE_SAMESITE,
+            path="/",
             max_age=15 * 60,
         )
 
@@ -118,8 +122,9 @@ async def refresh(request: Request, response: Response):
             key="refresh_token",
             value=new_refresh_token,
             httponly=True,
-            # secure=True,
-            samesite="lax",
+            secure=settings.COOKIE_SECURE,
+            samesite=settings.COOKIE_SAMESITE,
+            path="/",
             max_age=7 * 24 * 60 * 60,
         )
 
@@ -145,7 +150,17 @@ async def logout(request: Request, response: Response):
         except JWTError:
             pass
 
-    response.delete_cookie("access_token")
-    response.delete_cookie("refresh_token")
+    response.delete_cookie(
+        key="access_token",
+        path="/",
+        samesite=settings.COOKIE_SAMESITE,
+        secure=settings.COOKIE_SECURE,
+    )
+    response.delete_cookie(
+        key="refresh_token",
+        path="/",
+        samesite=settings.COOKIE_SAMESITE,
+        secure=settings.COOKIE_SECURE,
+    )
 
     return {"message": "Logout Success"}
